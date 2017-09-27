@@ -98,9 +98,18 @@ class Density:
 		inout.save_density()
 		
 class Interpolant:
+	"""
+	This class describe an interpolation problem based on optimal transport
+	and Sinkhorn algorithm.
+	"""
 	def __init__(self, Rho0, Rho1, param):
 		"""
-		This class describe an interpolation problem based on optimal transport.
+		Parameters
+			----------
+			Rho0, Rho1 : Density object
+				The densities we want to interpolate
+			param : dictionnary
+				Contains the parameters of the interpolation
 		"""
 		self.Rho0 = Rho0
 		self.Rho1 = Rho1
@@ -111,7 +120,7 @@ class Interpolant:
 		self.Gamma_x = func.compute_gamma(Rho0.vertices[0], Rho0.vertices[0], param['epsilon'])
 		self.Gamma_y = func.compute_gamma(Rho0.vertices[1], Rho0.vertices[1], param['epsilon'])
 		self.Rho0_tilde = None
-		self.Rho1_tilde= None
+		self.Rho1_tilde = None
 		
 	def run(self):
 		"""
@@ -122,15 +131,22 @@ class Interpolant:
 			return
 		
 		t = np.linspace(0.,1.,self.param['nFrames'])
-		buf = np.empty_like(self.Rho0.values)
+		
 		# Balanced transport
 		if(self.param['lambda0']==np.inf and self.param['lambda1']==np.inf):
 			# Call interpolator
 			for i in xrange(self.param['nFrames']):
 				self.Frames.append(Density(self.Rho0.vertices,\
 				func.interpolator_splitting(self.Gamma_x, self.Gamma_y, self.Rho0.values, self.Rho1.values, t[i], self.param['epsilon'])))
-		#else:
-			# Find Rho0_tilde...
-			# Call interpolator
+		
+		# Unbalanced transport
+		else:
+			A0,A1 = func.solve_IPFP_split_penalization(self.Gamma_x, self.Gamma_y, self.Rho0.values, self.Rho1.values, self.param)
+			Rho1_tilde = Density(self.Rho1.vertices,np.multiply(A1, self.Gamma_y.dot(A0).dot(self.Gamma_x)))
+			Rho0_tilde = Density(self.Rho0.vertices,np.multiply(A0, self.Gamma_y.dot(A1).dot(self.Gamma_x)))
+			for i in xrange(self.param['nFrames']):
+				self.Frames.append(Density(self.Rho0.vertices,\
+				func.interpolator_splitting(self.Gamma_x, self.Gamma_y, Rho0_tilde.values, Rho1_tilde.values, t[i], self.param['epsilon'])))
+			
 		self.has_run = True
 		

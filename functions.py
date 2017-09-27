@@ -15,6 +15,18 @@ def compute_gamma(x,y,eps):
 	C = 0.5*(x_tiled - y_tiled)**2
 	return np.exp(-C/eps)
 	
+
+def div0(x,y):
+	"""
+	Avoid division by zero
+	"""
+	res = np.zeros_like(x)
+	I = np.logical_and((x>=0.),(y>0.))
+	res[I] = np.divide(x[I],y[I])
+	J = np.logical_and(x>=0., y==0.)
+	res[J] = 0.
+	return res
+	
 	
 def interp_frames_calculation_splitting(X,Rho0, Rho1, Gamma_x, Gamma_y, epsilon, nb_frames=5, w2=None):
 	t = np.linspace(0.,1.,nb_frames)
@@ -87,13 +99,51 @@ def interpolator_splitting(Gx, Gy, R0, R1, t, eps):
 		# Thompson metric stopping criterion
 		error = np.amax(np.abs(eps*np.log(A1nt/A1t)))
 		
-		print('error at step', count, '=', error)
+		if(count%10 == 0):
+			print('error at step', count, '=', error)
 		A1t = A1nt
 		if(error < error_min):
 			break
 		count += 1
 	
 	return np.multiply( Gy_1mt.dot(A0t.dot(Gx_1mt)), (Gy_t.dot(A1t)).dot(Gx_t) )
+
+
+def solve_IPFP_split_penalization(Gx, Gy, R0, R1, param):
+	""" 
+	Lambda_0 and lambda_1 can be either a scalars or matrices of the same
+	dimension as Gammas.
+	"""
+	A0 = np.ones_like(R0)
+	error_min = 4e-6
+	niter_max = 10000
+	epsilon = param['epsilon']
+	lambda0 = param['lambda0']
+	lambda1 = param['lambda1']
+	exp0 = lambda0/(lambda0 + epsilon)
+	if(not np.isfinite(exp0)):
+		exp0 = 1.
+	exp1 = lambda1/(lambda1 + epsilon)
+	if(not np.isfinite(exp1)):
+		exp1 = 1.
+	
+	for i in xrange(niter_max):
+		A1 = np.power(np.divide(R1,Gx.dot(Gy.dot(A0).T).T),exp1)
+		A1[np.isnan(A1)] = 0.
+		A0n = np.power(np.divide(R0,Gy.dot(Gx.dot(A1.T).T)),exp0)
+		A0n[np.isnan(A0n)] = 0.
+		# Thompson metric stopping criterion
+
+		tmp = np.log(div0(A0n,A0))
+		tmp[np.isinf(tmp)] = 0.
+		error = np.amax(np.abs(epsilon*tmp))
+		if(i%10 == 0):
+			print('error at step', i, '=', error)
+		A0 = A0n
+		if(error < error_min):
+			break
+	
+	return A0,A1
 
 
 def wasserstein_distance(X,Gamma_x,Gamma_y,A0,A1,t=None):

@@ -9,8 +9,8 @@ param = dict(filename_Rho0 = "Inputs/CasTest01/ECMWF_20080901_060000_Latmin-36_L
 			 filename_Rho1 = "Inputs/CasTest01/ECMWF_20080901_120000_Latmin-36_Lonmin30_Latmax-16_Lonmax50.txt",
 			 epsilon = 1e-3,
 			 nFrames = 3,				# Number of interpolated frames (including marginals)
-			 lambda0 = np.inf,			# lambda \in [0, +inf[, no mass creation if np.inf
-			 lambda1 = np.inf,
+			 lambda0 = 10,			# lambda \in [0, +inf[, no mass creation if np.inf
+			 lambda1 = 100,
 			 name = "ECMWF_20080901", 	# For the saving
 			 save_interp = True,
 			 save_w2 = True,
@@ -46,6 +46,5 @@ else:
 #### Interpolation creation ####
 Interp = density.Interpolant(Rho0, Rho1, param)
 Interp.run()
-
 for i in xrange(param['nFrames']):
 	Interp.Frames[i].plot()
