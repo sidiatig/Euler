@@ -122,15 +122,15 @@ class Interpolant:
 			return
 		
 		t = np.linspace(0.,1.,self.param['nFrames'])
-		buffer = np.empty_like(self.Rho0.values)
+		buf = np.empty_like(self.Rho0.values)
 		# Balanced transport
-		if(self.param['lambda0'] is None):
+		if(self.param['lambda0']==np.inf and self.param['lambda1']==np.inf):
 			# Call interpolator
 			for i in xrange(self.param['nFrames']):
-				self.Frames.append(Density(self.Rho0.vertices,func.interpolator_splitting(self.Gamma_x, self.Gamma_y,\
-																				          self.Rho0.values, self.Rho1.values,\
-																						  t[i], self.param['epsilon'])))
+				self.Frames.append(Density(self.Rho0.vertices,\
+				func.interpolator_splitting(self.Gamma_x, self.Gamma_y, self.Rho0.values, self.Rho1.values, t[i], self.param['epsilon'])))
 		#else:
 			# Find Rho0_tilde...
 			# Call interpolator
 		self.has_run = True
+		
