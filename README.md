@@ -1,8 +1,9 @@
 Dependencies
 ------------
-+ Numpy
-+ Scipy
-+ Matplotlib
++ numpy
++ scipy
++ matplotlib
++ h5py
 
 Use
 ---
