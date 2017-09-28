@@ -7,10 +7,10 @@ import density
 
 param = dict(filename_Rho0 = "Inputs/CasTest01/ECMWF_20080901_060000_Latmin-36_Lonmin30_Latmax-16_Lonmax50.txt",
 			 filename_Rho1 = "Inputs/CasTest01/ECMWF_20080901_120000_Latmin-36_Lonmin30_Latmax-16_Lonmax50.txt",
-			 epsilon = 1e-3,
-			 nFrames = 3,				# Number of interpolated frames (including marginals)
-			 lambda0 = 10,			# lambda \in [0, +inf[, no mass creation if np.inf
-			 lambda1 = 100,
+			 epsilon = 1e-4,
+			 nFrames = 5,				# Number of interpolated frames (including marginals)
+			 lambda0 = np.inf,			# lambda \in [0, +inf[, no mass creation if np.inf
+			 lambda1 = np.inf,
 			 name = "ECMWF_20080901", 	# For the saving
 			 save_interp = True,
 			 save_w2 = True,
@@ -20,6 +20,7 @@ param = dict(filename_Rho0 = "Inputs/CasTest01/ECMWF_20080901_060000_Latmin-36_L
 lambda0 = param['lambda0']
 lambda1 = param['lambda1']
 
+#### Adapt the exported file name to the parameters ####
 param['name'] = param['name']+'_eps='+str(param['epsilon'])
 if(lambda0 != np.inf):
 	param['name'] += "_l0="+str(lambda0)
@@ -48,3 +49,4 @@ Interp = density.Interpolant(Rho0, Rho1, param)
 Interp.run()
 for i in xrange(param['nFrames']):
 	Interp.Frames[i].plot()
+	print(Interp.W2[i])

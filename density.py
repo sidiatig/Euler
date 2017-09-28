@@ -136,8 +136,8 @@ class Interpolant:
 		if(self.param['lambda0']==np.inf and self.param['lambda1']==np.inf):
 			# Call interpolator
 			for i in xrange(self.param['nFrames']):
-				self.Frames.append(Density(self.Rho0.vertices,\
-				func.interpolator_splitting(self.Gamma_x, self.Gamma_y, self.Rho0.values, self.Rho1.values, t[i], self.param['epsilon'])))
+				self.W2[i], interp = func.interpolator_splitting(self.Rho0.vertices, self.Gamma_x, self.Gamma_y, self.Rho0.values, self.Rho1.values, t[i], self.param['epsilon'])
+				self.Frames.append(Density(self.Rho0.vertices, interp))
 		
 		# Unbalanced transport
 		else:
@@ -145,8 +145,14 @@ class Interpolant:
 			Rho1_tilde = Density(self.Rho1.vertices,np.multiply(A1, self.Gamma_y.dot(A0).dot(self.Gamma_x)))
 			Rho0_tilde = Density(self.Rho0.vertices,np.multiply(A0, self.Gamma_y.dot(A1).dot(self.Gamma_x)))
 			for i in xrange(self.param['nFrames']):
-				self.Frames.append(Density(self.Rho0.vertices,\
-				func.interpolator_splitting(self.Gamma_x, self.Gamma_y, Rho0_tilde.values, Rho1_tilde.values, t[i], self.param['epsilon'])))
+				self.W2[i], interp = func.interpolator_splitting(self.Rho0.vertices, self.Gamma_x, self.Gamma_y, Rho0_tilde.values, Rho1_tilde.values, t[i], self.param['epsilon'])
+				self.Frames.append(Density(self.Rho0.vertices, interp))
 			
 		self.has_run = True
+		
+	# TODO
+	# Comment recup les interp, et pas les objets?
+	# Est-on oblige de stocker les frames comme un tableau d'objets?
+	#def save():
+	#	inout.export_hdf(param, )
 		

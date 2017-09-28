@@ -101,19 +101,16 @@ def uniform_square(x,y,box):
 	return dens
 
 	
-def export_hdf(interp_frames, w2, eps, movements, name, lambda_0=None, r0=None, r1=None):
+def export_hdf(param, interp_frames, w2, movements=None):
 	"""
 	Export data into a hdf5 file.
 	"""
-	f = h5py.File(name+'.hdf5','w')
+	f = h5py.File(param['name']+'.hdf5','w')
 	f.create_dataset('Interp',data=interp_frames)
 	f.create_dataset('W2',data=w2)
-	f.create_dataset('Movements',data=movements)
 	f.create_dataset('epsilon',data=eps)
-	if lambda_0 is not None:
-		f.create_dataset('lambda',data=lambda_0)
-		f.create_dataset('r0',data=r0)
-		f.create_dataset('r1',data=r1)
+	if(movements is not None):
+		f.create_dataset('Movements',data=movements)
 
 		
 def save_density():
