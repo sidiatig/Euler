@@ -4,11 +4,13 @@ from __future__ import print_function
 import sys
 import numpy as np
 import density
+import plots
+import inout
 
 param = dict(filename_Rho0 = "Inputs/CasTest01/ECMWF_20080901_060000_Latmin-36_Lonmin30_Latmax-16_Lonmax50.txt",
 			 filename_Rho1 = "Inputs/CasTest01/ECMWF_20080901_120000_Latmin-36_Lonmin30_Latmax-16_Lonmax50.txt",
-			 epsilon = 1e-4,
-			 nFrames = 5,				# Number of interpolated frames (including marginals)
+			 epsilon = 1e-7,
+			 nFrames = 3,				# Number of interpolated frames (including marginals)
 			 lambda0 = np.inf,			# lambda \in [0, +inf[, no mass creation if np.inf
 			 lambda1 = np.inf,
 			 name = "ECMWF_20080901", 	# For the saving
@@ -47,6 +49,9 @@ else:
 #### Interpolation creation ####
 Interp = density.Interpolant(Rho0, Rho1, param)
 Interp.run()
+#Interp.save()
+#plots.plot_density(Rho0.vertices, Interp.Frames[1,:,:])
+plots.plot_wasserstein_distance(Interp.W2)
 for i in xrange(param['nFrames']):
-	Interp.Frames[i].plot()
-	print(Interp.W2[i])
+	plots.plot_density(Rho0.vertices, Interp.Frames[i,:,:])
+

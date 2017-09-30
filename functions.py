@@ -16,18 +16,41 @@ def compute_gamma(x,y,eps):
 	return np.exp(-C/eps)
 	
 
-def div0(x,y):
+def div0(x1,y1):
 	"""
 	Avoid division by zero
 	"""
+	x = np.nan_to_num(x1)
+	y = np.nan_to_num(y1)
 	res = np.zeros_like(x)
 	I = np.logical_and((x>=0.),(y>0.))
 	res[I] = np.divide(x[I],y[I])
 	J = np.logical_and(x>=0., y==0.)
 	res[J] = 0.
 	return res
+
 	
+def solve_IPFP_split(Gx, Gy, R0, R1, epsilon):
 	
+	A0 = np.ones_like(R0)
+	error_min = 1e-4
+	niter_max = 3000
+
+	for i in xrange(niter_max):
+	
+		A1 = div0(R1, Gy.T.dot(A0).dot(Gx))
+		#A1[np.isinf(A1)] = 0
+		A0n = div0(R0, Gy.dot(A1).dot(Gx.T))
+		#A0n[np.isinf(A0n)] = 0
+		
+		error = np.sum(np.absolute(A0n-A0))/np.sum(A0)
+		if(i%10 == 0):
+			print('error at step', i, '=', error)
+		A0 = A0n
+		if(error < error_min):
+			break
+	
+	return A0,A1
 #def interp_frames_calculation_splitting(X,Rho0, Rho1, Gamma_x, Gamma_y, epsilon, nb_frames=5, w2=None):
 #	t = np.linspace(0.,1.,nb_frames)
 #	Nx,Ny = Rho0.shape[1],Rho0.shape[0]
@@ -84,33 +107,32 @@ def div0(x,y):
 def interpolator_splitting(X, Gx, Gy, R0, R1, t, eps):
 	
 	A1t = np.ones_like(R0)
-	error_min = 3e-6
-	count = 1
-	niter_max = 20000
+	error_min = 1e-4
+	niter_max = 3000
 	Gx_t, Gy_t = Gx**t, Gy**t
 	Gx_1mt, Gy_1mt = Gx**(1-t), Gy**(1-t)
 	
 	for i in xrange(niter_max):
 	
-		A0t = np.divide( R0, Gy_t.dot( Gy_1mt.dot(A1t).dot(Gx_1mt).dot(Gx_t) ) )
+		A0t = div0( R0, Gy_t.dot( Gy_1mt.dot(A1t).dot(Gx_1mt).dot(Gx_t) ) )
 
-		A1nt = np.divide( R1, Gy_1mt.dot(Gy_t.dot(A0t).dot(Gx_t).dot(Gx_1mt)) )
+		A1nt = div0( R1, Gy_1mt.dot(Gy_t.dot(A0t).dot(Gx_t).dot(Gx_1mt)) )
 
 		# Thompson metric stopping criterion
-		error = np.amax(np.abs(eps*np.log(A1nt/A1t)))
-		
-		if(count%10 == 0):
-			print('error at step', count, '=', error)
+		# error = np.amax(np.abs(eps*np.log(A1nt/A1t)))
+		error = np.sum(np.absolute(A1nt-A1t))/np.sum(A1t)
+		if(i%10 == 0):
+			print('error at step', i, '=', error)
 		A1t = A1nt
 		if(error < error_min):
 			break
-		count += 1
+		i += 1
 	
-	# TODO
-	# Trouver un moyen d'avoir acces au support ds le calcul de W2
-	W2 = wasserstein_distance(X, Gx, Gy, A0t, A1t)
+	interp = np.multiply( Gy_1mt.dot(A0t.dot(Gx_1mt)), (Gy_t.dot(A1t)).dot(Gx_t) )
+	A0,A1 = solve_IPFP_split(Gx,Gy,R0,interp,eps)
+	W2 = wasserstein_distance(X, Gx, Gy, A0, A1)
 	
-	return W2, np.multiply( Gy_1mt.dot(A0t.dot(Gx_1mt)), (Gy_t.dot(A1t)).dot(Gx_t) )
+	return W2, interp
 
 
 def solve_IPFP_split_penalization(Gx, Gy, R0, R1, param):
@@ -119,8 +141,8 @@ def solve_IPFP_split_penalization(Gx, Gy, R0, R1, param):
 	dimension as Gammas.
 	"""
 	A0 = np.ones_like(R0)
-	error_min = 4e-6
-	niter_max = 10000
+	error_min = 1e-4
+	niter_max = 3000
 	epsilon = param['epsilon']
 	lambda0 = param['lambda0']
 	lambda1 = param['lambda1']
@@ -132,15 +154,16 @@ def solve_IPFP_split_penalization(Gx, Gy, R0, R1, param):
 		exp1 = 1.
 	
 	for i in xrange(niter_max):
-		A1 = np.power(np.divide(R1,Gx.dot(Gy.dot(A0).T).T),exp1)
-		A1[np.isnan(A1)] = 0.
-		A0n = np.power(np.divide(R0,Gy.dot(Gx.dot(A1.T).T)),exp0)
-		A0n[np.isnan(A0n)] = 0.
+		A1 = np.power(div0(R1,Gx.dot(Gy.dot(A0).T).T),exp1)
+		#A1[np.isnan(A1)] = 0.
+		A0n = np.power(div0(R0,Gy.dot(Gx.dot(A1.T).T)),exp0)
+		#A0n[np.isnan(A0n)] = 0.
 		
 		# Thompson metric stopping criterion
-		tmp = np.log(div0(A0n,A0))
-		tmp[np.isinf(tmp)] = 0.
-		error = np.amax(np.abs(epsilon*tmp))
+		#tmp = np.log(div0(A0n,A0))
+		#tmp[np.isinf(tmp)] = 0.
+		#error = np.amax(np.abs(epsilon*tmp))
+		error = np.sum(np.absolute(A0n-A0))/np.sum(A0)
 		if(i%10 == 0):
 			print('error at step', i, '=', error)
 		A0 = A0n
@@ -172,6 +195,7 @@ def wasserstein_distance(X,Gamma_x,Gamma_y,A0,A1,t=None):
 		W2 += np.multiply(A0.dot(Gamma_x), CGy.dot(A1))
 		
 	else:
+		# Not working!
 		CGx = (Gamma_x**t).dot(np.multiply(Gamma_x**(1-t),Cx))
 		CGy = (Gamma_y**t).dot(np.multiply(Gamma_y**(1-t),Cy))
 

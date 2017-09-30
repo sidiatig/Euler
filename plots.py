@@ -20,3 +20,9 @@ def plot_density(X,Rho,title=None,Ampl=None, filename=None):
 		plt.show()
 	else:
 		fig.savefig(filename+'.png')
+		
+
+def plot_wasserstein_distance(W2):
+	t = np.linspace(0,1,len(W2))
+	plt.plot(t,W2)
+	plt.show()
