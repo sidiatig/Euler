@@ -3,7 +3,6 @@ from __future__ import print_function
 
 import numpy as np
 
-
 def compute_gamma(x,y,eps):
 	
 	Nx = len(x)
@@ -39,10 +38,10 @@ def solve_IPFP_split(Gx, Gy, R0, R1, epsilon):
 	for i in xrange(niter_max):
 	
 		A1 = div0(R1, Gy.T.dot(A0).dot(Gx))
-		#A1[np.isinf(A1)] = 0
 		A0n = div0(R0, Gy.dot(A1).dot(Gx.T))
-		#A0n[np.isinf(A0n)] = 0
 		
+		# TODO
+		# Tester un autre critere d'arret
 		error = np.sum(np.absolute(A0n-A0))/np.sum(A0)
 		if(i%10 == 0):
 			print('error at step', i, '=', error)
@@ -115,7 +114,6 @@ def interpolator_splitting(X, Gx, Gy, R0, R1, t, eps):
 	for i in xrange(niter_max):
 	
 		A0t = div0( R0, Gy_t.dot( Gy_1mt.dot(A1t).dot(Gx_1mt).dot(Gx_t) ) )
-
 		A1nt = div0( R1, Gy_1mt.dot(Gy_t.dot(A0t).dot(Gx_t).dot(Gx_1mt)) )
 
 		# Thompson metric stopping criterion
@@ -155,9 +153,7 @@ def solve_IPFP_split_penalization(Gx, Gy, R0, R1, param):
 	
 	for i in xrange(niter_max):
 		A1 = np.power(div0(R1,Gx.dot(Gy.dot(A0).T).T),exp1)
-		#A1[np.isnan(A1)] = 0.
 		A0n = np.power(div0(R0,Gy.dot(Gx.dot(A1.T).T)),exp0)
-		#A0n[np.isnan(A0n)] = 0.
 		
 		# Thompson metric stopping criterion
 		#tmp = np.log(div0(A0n,A0))
@@ -205,3 +201,49 @@ def wasserstein_distance(X,Gamma_x,Gamma_y,A0,A1,t=None):
 	W2 = np.sum(W2)
 
 	return np.sqrt(W2)
+	
+	
+def average_moments(A0, A1, Gamma_x, Gamma_y, Rho0, ampl=None, filename=None):
+	"""
+	Compute the average displacement of every grid point,
+	from t=0 to t=1
+	
+	Parameters
+	----------
+	
+		Rho0 : Density object
+			Initial density
+			
+		A0, A1 : Scalings of the two densities Rho0 and Rho1
+	"""
+	x,y = Rho0.get_initial_vertices()
+	Nx = len(x) #Number of columns
+	Ny = len(y) #Number of rows
+	x_grid,y_grid = np.meshgrid(x,y)
+
+	j_plot,i_plot = np.meshgrid(np.linspace(0,Nx-1,Nx),np.linspace(0,Ny-1,Ny))
+	j_plot,i_plot = np.reshape(j_plot,(Nx*Ny,)), np.reshape(i_plot,(Nx*Ny,))
+	indices_list = np.vstack([i_plot,j_plot]).T.astype(np.int16)
+	
+	# Calculer les tranches du transport_plan correspondantes
+	transport_plan_list = np.empty((Nx*Ny,Ny,Nx))
+	for k in xrange(Nx*Ny):
+		i0,j0 = indices_list[k,:]
+		transport_plan_list[k,:,:] = (A0[i0,j0]*(Gamma_x[j0,:][np.newaxis,:]).T*Gamma_y[i0,:]).T*A1[:,:]
+		transport_plan_list[k,:,:] /= np.sum(transport_plan_list[k,:,:])
+
+	# Displacement of each pixel from t=0 to t=1
+	vec_list = np.zeros((Nx*Ny,2))
+	for k in xrange(Nx*Ny):
+		i0,j0 = indices_list[k,:]
+		# We define a (2,Ny,Nx) matrice containing displacement of
+		# (i0,j0) to every grid point.
+		t = np.stack((x_grid - x[j0], y_grid - y[i0]),axis=0)
+		vec_list[k,:] = np.sum(np.sum(np.multiply(transport_plan_list[k,:,:],t),axis=1),axis=1)
+	
+	# Moments calculation
+	#Rho = np.tile(np.reshape(Rho0,(Nx*Ny,)),(2,1)).T
+	Rho = np.ones_like(vec_list)
+	moments = np.multiply(vec_list,Rho)
+
+	return moments

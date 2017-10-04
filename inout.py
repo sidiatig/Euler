@@ -7,27 +7,6 @@ import sys
 import numpy as np
 import h5py
 
-def load_marginals(fn1,fn2):
-	marg1 = sio.loadmat(fn1)
-	marg2 = sio.loadmat(fn2)
-	x = marg1['x'][0,:]
-	y = marg1['y'][:,0]
-	Rho0 = marg1['f']/np.sum(marg1['f'])
-	Rho1 = marg2['g']/np.sum(marg2['g'])
-
-	return [x,y],Rho0,Rho1
-	
-	
-def load_marginals_2(fn):
-	marg = sio.loadmat(fn)
-	x = marg['X'][0,:]
-	y = marg['Y'][0,:]
-
-	Rho0 = marg['Ro0'].astype(np.float64)/np.sum(marg['Ro0'])
-	print(np.sum(Rho0))
-	Rho1 = marg['Ro1'].astype(np.float64)/np.sum(marg['Ro1'])
-	return [x,y],Rho0,Rho1
-
 
 def read_txt(fn):
 	"""
@@ -97,21 +76,24 @@ def uniform_square(x,y,box):
 	dens = np.zeros((Ny,Nx))
 	I = (x_tiled<box[1]) & (x_tiled>box[0]) & (y_tiled<box[3]) & (y_tiled>box[2])
 	dens[I] = 1.
-	
 	return dens
 
 	
-def export_hdf(param, interp_frames, w2, movements=None):
+def export_hdf(param, interp_frames, w2, moments=None):
 	"""
 	Export data into a hdf5 file.
 	"""
 	f = h5py.File(param['name']+'.hdf5','w')
 	f.create_dataset('Interp',data=interp_frames)
 	f.create_dataset('W2',data=w2)
-	f.create_dataset('epsilon',data=eps)
-	if(movements is not None):
-		f.create_dataset('Movements',data=movements)
-
+	f.create_dataset('epsilon',data=param['epsilon'])
+	if(param['lambda0'] != np.inf):
+		f.create_dataset('lambda0',data=param['lambda0'])
+	if(param['lambda0'] != np.inf):
+		f.create_dataset('lambda1',data=param['lambda1'])
+	if(moments is not None):
+		f.create_dataset('Moments',data=moments)
+	return
 		
 def save_density():
 	print("pouet")

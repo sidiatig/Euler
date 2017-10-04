@@ -9,7 +9,7 @@ import inout
 
 param = dict(filename_Rho0 = "Inputs/CasTest01/ECMWF_20080901_060000_Latmin-36_Lonmin30_Latmax-16_Lonmax50.txt",
 			 filename_Rho1 = "Inputs/CasTest01/ECMWF_20080901_120000_Latmin-36_Lonmin30_Latmax-16_Lonmax50.txt",
-			 epsilon = 1e-7,
+			 epsilon = 2e-3,
 			 nFrames = 3,				# Number of interpolated frames (including marginals)
 			 lambda0 = np.inf,			# lambda \in [0, +inf[, no mass creation if np.inf
 			 lambda1 = np.inf,
@@ -29,11 +29,18 @@ if(lambda0 != np.inf):
 	if(lambda1 != np.inf):
 		param['name'] += "_l1="+str(lambda1)
 
+# For development
+#box = [0.,1.5,0.,1.]
+#Nx = 150
+#Ny = 100
+#x,y = np.linspace(box[0], box[1], Nx), np.linspace(box[2], box[3], Ny)
+#Rho0 = density.Density([x,y],inout.gaussian(x,y,0.25,0.3,0.1,0.1))
+#Rho1 = density.Density([x,y],inout.gaussian(x,y,1.25,0.7,0.1,0.1))
+
 
 #### Densities creation ####
 Rho0 = density.Density.from_file(param['filename_Rho0'], rescale=True)
 Rho1 = density.Density.from_file(param['filename_Rho1'], rescale=True)
-
 
 if(lambda0==np.inf and lambda1==np.inf):
 	# For balanced transport, both densities are normalized.
@@ -48,10 +55,9 @@ else:
 
 #### Interpolation creation ####
 Interp = density.Interpolant(Rho0, Rho1, param)
-Interp.run()
-#Interp.save()
-#plots.plot_density(Rho0.vertices, Interp.Frames[1,:,:])
-plots.plot_wasserstein_distance(Interp.W2)
-for i in xrange(param['nFrames']):
-	plots.plot_density(Rho0.vertices, Interp.Frames[i,:,:])
-
+Interp.run_frames()
+Interp.plot_frames()
+Interp.plot_wasserstein_distance()
+Interp.run_moments()
+Interp.plot_moments()
+Interp.save()
