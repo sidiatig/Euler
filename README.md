@@ -8,7 +8,7 @@ Dependencies
 Use
 ---
 
-Complete the parameters dictionnary on top of Euler.py and run with:
+Adapt the parameters file alongside Euler.py and run with:
 ``` sh
-python Euler.py
+python Euler.py --f param.txt
 ```
