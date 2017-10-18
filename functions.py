@@ -32,7 +32,7 @@ def div0(x1,y1):
 def solve_IPFP_split(Gx, Gy, R0, R1, epsilon):
 	
 	A0 = np.ones_like(R0)
-	error_min = 1e-4
+	error_min = 1e-8
 	niter_max = 3000
 
 	for i in xrange(niter_max):
@@ -42,7 +42,10 @@ def solve_IPFP_split(Gx, Gy, R0, R1, epsilon):
 		
 		# TODO
 		# Tester un autre critere d'arret
-		error = np.sum(np.absolute(A0n-A0))/np.sum(A0)
+		tmp = A0n/A0
+		I = np.isfinite(tmp)
+		error = np.amax(np.log(tmp[I]))
+		#error = np.sum(np.absolute(A0n-A0))/np.sum(A0)
 		if(i%10 == 0):
 			print('error at step', i, '=', error)
 		A0 = A0n
@@ -50,57 +53,6 @@ def solve_IPFP_split(Gx, Gy, R0, R1, epsilon):
 			break
 	
 	return A0,A1
-#def interp_frames_calculation_splitting(X,Rho0, Rho1, Gamma_x, Gamma_y, epsilon, nb_frames=5, w2=None):
-#	t = np.linspace(0.,1.,nb_frames)
-#	Nx,Ny = Rho0.shape[1],Rho0.shape[0]
-#	interp_frames = np.zeros((nb_frames,Ny,Nx))
-#	W2_frames = np.zeros((nb_frames,))
-#	W2_prime_frames = np.zeros((nb_frames,))
-#	if w2:
-#		for i in xrange(nb_frames):
-#			interp_frames[i,:,:],W2_frames[i],W2_prime_frames[i] = mccan_interp_splitting(t[i], X, Rho0, Rho1, Gamma_x, Gamma_y, epsilon, w2)
-#	else:
-#		for i in xrange(nb_frames):
-#			interp_frames[i,:,:] = mccan_interp_splitting(t[i],X, Rho0, Rho1, Gamma_x, Gamma_y, epsilon)[0]
-
-#	return interp_frames if w2 is None else interp_frames,W2_frames,W2_prime_frames
-#	
-#	
-#def mccan_interp_splitting(t, X, Rho0, Rho1, Gamma_x, Gamma_y, epsilon, w2=None):
-#	A1t = np.ones_like(Rho0)
-#	error_min = 3e-6
-#	count = 1
-#	niter_max = 20000
-
-#	for i in xrange(niter_max):
-
-#		A0t = np.divide( Rho0, (Gamma_y**t).dot( (Gamma_y**(1-t)).dot(A1t).dot(Gamma_x**(1-t)).dot(Gamma_x**t) ) )
-
-#		A1nt = np.divide( Rho1, (Gamma_y**(1-t)).dot((Gamma_y**t).dot(A0t).dot(Gamma_x**t).dot(Gamma_x**(1-t))) )
-
-#		# Thompson metric stopping criterion
-#		error = np.amax(np.abs(epsilon*np.log(A1nt/A1t)))
-#		
-#		print('error at step', count, '=', error)
-#		A1t = A1nt
-#		print((error < error_min))
-#		if(error < error_min):
-#			break
-#		count += 1
-#	
-#	interp = np.multiply( (Gamma_y**(1-t)).dot(A0t.dot(Gamma_x**(1-t))), ((Gamma_y**t).dot(A1t)).dot(Gamma_x**t) )
-#	
-#	 
-#	# Wasserstein distance calculation
-#	W=None
-#	W_prime=None
-#	if w2:
-#		A0,A1 = solve_IPFP_split(Gamma_x,Gamma_y,Rho0,interp,epsilon)
-#		W = wasserstein_distance(X,Gamma_x,Gamma_y,A0,A1)
-#		W_prime = wasserstein_distance(X,Gamma_x,Gamma_y,A0t,A1t,t)
-#		
-#	print('Total mass of interpolant at t =', t, ':', np.sum(interp))
-#	return interp if w2 is None else interp,W,W_prime
 
 
 def interpolator_splitting(X, Gx, Gy, R0, R1, t, eps):
@@ -115,7 +67,7 @@ def interpolator_splitting(X, Gx, Gy, R0, R1, t, eps):
 	
 		A0t = div0( R0, Gy_t.dot( Gy_1mt.dot(A1t).dot(Gx_1mt).dot(Gx_t) ) )
 		A1nt = div0( R1, Gy_1mt.dot(Gy_t.dot(A0t).dot(Gx_t).dot(Gx_1mt)) )
-
+		
 		# Thompson metric stopping criterion
 		# error = np.amax(np.abs(eps*np.log(A1nt/A1t)))
 		error = np.sum(np.absolute(A1nt-A1t))/np.sum(A1t)
@@ -131,7 +83,7 @@ def interpolator_splitting(X, Gx, Gy, R0, R1, t, eps):
 	W2 = wasserstein_distance(X, Gx, Gy, A0, A1)
 	
 	return W2, interp
-
+	
 
 def solve_IPFP_split_penalization(Gx, Gy, R0, R1, param):
 	""" 
@@ -191,7 +143,7 @@ def wasserstein_distance(X,Gamma_x,Gamma_y,A0,A1,t=None):
 		W2 += np.multiply(A0.dot(Gamma_x), CGy.dot(A1))
 		
 	else:
-		# Not working!
+		# Not working! Certainement un pb avec la formulation
 		CGx = (Gamma_x**t).dot(np.multiply(Gamma_x**(1-t),Cx))
 		CGy = (Gamma_y**t).dot(np.multiply(Gamma_y**(1-t),Cy))
 

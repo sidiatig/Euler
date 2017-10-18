@@ -1,0 +1,28 @@
+###### Parameters of the Euler.py script ######
+###### Don't modify parameters names, just ####
+###### values. Separator is a tab.		   ####
+###############################################
+
+# Path to the Rho0 first density file.
+filename_Rho0	Inputs/CasTest01/ECMWF_20080901_060000_Latmin-36_Lonmin30_Latmax-16_Lonmax50.txt
+
+# Path to the Rho1 second density file.
+filename_Rho1	Inputs/CasTest01/ECMWF_20080901_120000_Latmin-36_Lonmin30_Latmax-16_Lonmax50.txt
+
+# Regularization parameter.
+epsilon	5e-5
+
+# Number of interpolated frames (including marginals).
+nFrames	5
+
+# lambda \in [0, +inf[, default is infinite, i.e. no mass creation.
+#lambda0	1
+#lambda1	1
+
+# Name of the file in which data will be saved (default hdf5 format).
+name	ECMWF_20080901
+
+# Default value is True, uncomment if you don't
+# want to save the moments.
+# moments: Average moments of each pixel between t=0 and t=1
+#save_moments	False

@@ -24,7 +24,7 @@ def plot_density(X,Rho,title=None,Ampl=None, filename=None):
 
 def plot_wasserstein_distance(W2):
 	t = np.linspace(0,1,len(W2))
-	plt.plot(t,W2,title='Wasserstein distance')
+	plt.plot(t,W2)
 	plt.show()
 	
 

@@ -135,30 +135,41 @@ class Interpolant:
 			print("The interpolation has already been calculated")
 			return
 		
+		print("#### Running interpolation ####")
+		print("epsilon = ", self.param['epsilon'])
 		t = np.linspace(0.,1.,self.param['nFrames'])
 		
 		# Balanced transport
 		if(self.param['lambda0']==np.inf and self.param['lambda1']==np.inf):
+			print("# Balanced transport")
+			self.Frames[0,:,:] = self.Rho0.values
+			self.Frames[self.param['nFrames']-1,:,:] = self.Rho1.values
 			# Call interpolator
-			for i in xrange(self.param['nFrames']):
-				self.A0,self.A1 = func.solve_IPFP_split(self.Gamma_x, self.Gamma_y, self.Rho0.values, self.Rho1.values, self.param['epsilon'])
-				self.W2[i], self.Frames[i,:,:] = func.interpolator_splitting(self.Rho0.vertices, self.Gamma_x, self.Gamma_y, self.Rho0.values, self.Rho1.values, t[i], self.param['epsilon'])
+			self.A0,self.A1 = func.solve_IPFP_split(self.Gamma_x, self.Gamma_y, self.Rho0.values, self.Rho1.values, self.param['epsilon'])
+			for i in range(1, self.param['nFrames']-1):
+				self.W2[i], self.Frames[i,:,:] = func.interpolator_splitting(self.Rho0.vertices, self.Gamma_x, self.Gamma_y, self.Rho0.values, self.Rho1.values, t[i], self.param['epsilon'])	
 		
 		# Unbalanced transport
 		else:
+			print("# Unbalanced transport, lambda0=", self.lambda0, ", lambda1=", self.lambda1)
 			self.A0,self.A1 = func.solve_IPFP_split_penalization(self.Gamma_x, self.Gamma_y, self.Rho0.values, self.Rho1.values, self.param)
-			Rho1_tilde = Density(self.Rho1.vertices,np.multiply(A1, self.Gamma_y.dot(A0).dot(self.Gamma_x)))
-			Rho0_tilde = Density(self.Rho0.vertices,np.multiply(A0, self.Gamma_y.dot(A1).dot(self.Gamma_x)))
-			for i in xrange(self.param['nFrames']):
+			Rho1_tilde = Density(self.Rho1.vertices,np.multiply(self.A1, self.Gamma_y.dot(self.A0).dot(self.Gamma_x)))
+			Rho0_tilde = Density(self.Rho0.vertices,np.multiply(self.A0, self.Gamma_y.dot(self.A1).dot(self.Gamma_x)))
+			self.Frames[0,:,:] = Rho0_tilde.values
+			self.Frames[self.param['nFrames']-1,:,:] = Rho1_tilde.values
+			for i in range(1, self.param['nFrames']-1):
 				self.W2[i], self.Frames[i,:,:] = func.interpolator_splitting(self.Rho0.vertices, self.Gamma_x, self.Gamma_y, Rho0_tilde.values, Rho1_tilde.values, t[i], self.param['epsilon'])
 			
 		self.interp_has_run = True
-	
+		print("#### Interpolation OK ####")
+		
 	
 	def run_moments(self):
 		if(self.interp_has_run):
+			print("#### Running moments calculation ####")
 			self.moments = func.average_moments(self.A0, self.A1, self.Gamma_x, self.Gamma_y, self.Rho0)
 			self.moments_has_run = True
+			print("#### Moments calculation OK ####")
 		else:
 			print("Run the interpolation before computing moments")
 		return
@@ -189,7 +200,7 @@ class Interpolant:
 		
 		
 	def save(self):
-		if(self.moments_has_run):
+		if(self.moments_has_run and self.param['save_moments'] is True):
 			inout.export_hdf(self.param, self.Frames, self.W2, self.moments)
 		elif(self.interp_has_run):
 			inout.export_hdf(self.param, self.Frames, self.W2)
